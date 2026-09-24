@@ -1,0 +1,304 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: issues
+    description: Civic issue intake and resolution tracking
+  - name: dashboard
+    description: Jansetu overview metrics and activity
+  - name: teams
+    description: Student teams and partner organizations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get Jansetu dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /activity:
+    get:
+      operationId: getActivity
+      tags: [dashboard]
+      summary: Get recent platform activity
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 8
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+  /issues:
+    get:
+      operationId: listIssues
+      tags: [issues]
+      summary: List civic issues
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [submitted, in_review, in_progress, solved]
+        - name: mine
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Civic issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Issue"
+    post:
+      operationId: createIssue
+      tags: [issues]
+      summary: Submit a civic issue for AI analysis and routing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueInput"
+      responses:
+        "201":
+          description: Created and analyzed issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+  /issues/{id}:
+    get:
+      operationId: getIssue
+      tags: [issues]
+      summary: Get a civic issue with its timeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Civic issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueDetail"
+        "404":
+          description: Issue not found
+    patch:
+      operationId: updateIssueStatus
+      tags: [issues]
+      summary: Update the status of a civic issue
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueStatusUpdate"
+      responses:
+        "200":
+          description: Updated issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+  /teams:
+    get:
+      operationId: listTeams
+      tags: [teams]
+      summary: List student teams and partner organizations
+      responses:
+        "200":
+          description: Teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+  /teams/{id}/issues:
+    get:
+      operationId: listTeamIssues
+      tags: [teams]
+      summary: List issues assigned to a team
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Assigned issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Issue"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    IssueInput:
+      type: object
+      required: [title, description, location]
+      properties:
+        title:
+          type: string
+          minLength: 3
+        description:
+          type: string
+          minLength: 10
+        location:
+          type: string
+          minLength: 2
+        contact:
+          type: ["string", "null"]
+        attachmentName:
+          type: ["string", "null"]
+    IssueStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [submitted, in_review, in_progress, solved]
+        note:
+          type: ["string", "null"]
+    Issue:
+      type: object
+      required: [id, reference, title, description, location, category, priority, status, assignedTeamId, assignedTeamName, assignedUniversity, aiSummary, createdAt, updatedAt, progress, nextAction]
+      properties:
+        id: { type: integer }
+        reference: { type: string }
+        title: { type: string }
+        description: { type: string }
+        location: { type: string }
+        contact: { type: ["string", "null"] }
+        attachmentName: { type: ["string", "null"] }
+        category: { type: string }
+        priority: { type: string, enum: [low, medium, high, urgent] }
+        status: { type: string, enum: [submitted, in_review, in_progress, solved] }
+        assignedTeamId: { type: integer }
+        assignedTeamName: { type: string }
+        assignedUniversity: { type: string }
+        aiSummary: { type: string }
+        progress: { type: integer, minimum: 0, maximum: 100 }
+        nextAction: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    IssueDetail:
+      allOf:
+        - $ref: "#/components/schemas/Issue"
+        - type: object
+          required: [timeline]
+          properties:
+            timeline:
+              type: array
+              items:
+                $ref: "#/components/schemas/Activity"
+    Activity:
+      type: object
+      required: [id, issueId, message, type, createdAt]
+      properties:
+        id: { type: integer }
+        issueId: { type: integer }
+        issueReference: { type: ["string", "null"] }
+        message: { type: string }
+        type: { type: string, enum: [submitted, analyzed, assigned, update, solved] }
+        createdAt: { type: string, format: date-time }
+    Team:
+      type: object
+      required: [id, name, university, specialization, members, activeIssues, capacity, availability, accent]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        university: { type: string }
+        specialization: { type: string }
+        members: { type: integer }
+        activeIssues: { type: integer }
+        capacity: { type: integer }
+        availability: { type: string, enum: [available, busy, at_capacity] }
+        accent: { type: string }
+    DashboardSummary:
+      type: object
+      required: [submitted, inProgress, solved, responseRate, weeklyChange, categoryBreakdown, statusBreakdown]
+      properties:
+        submitted: { type: integer }
+        inProgress: { type: integer }
+        solved: { type: integer }
+        responseRate: { type: integer }
+        weeklyChange: { type: integer }
+        categoryBreakdown:
+          type: array
+          items:
+            type: object
+            required: [label, count]
+            properties:
+              label: { type: string }
+              count: { type: integer }
+        statusBreakdown:
+          type: array
+          items:
+            type: object
+            required: [label, count]
+            properties:
+              label: { type: string }
+              count: { type: integer }
+
