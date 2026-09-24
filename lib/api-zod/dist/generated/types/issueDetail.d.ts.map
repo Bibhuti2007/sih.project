@@ -1,0 +1,1 @@
+{"version":3,"file":"issueDetail.d.ts","sourceRoot":"","sources":["../../../src/generated/types/issueDetail.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,QAAQ,EAAE,MAAM,YAAY,CAAC;AAC3C,OAAO,KAAK,EAAE,KAAK,EAAE,MAAM,SAAS,CAAC;AAErC,MAAM,MAAM,WAAW,GAAG,KAAK,GAAG;IAChC,QAAQ,EAAE,QAAQ,EAAE,CAAC;CACtB,CAAC"}
